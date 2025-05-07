@@ -1,4 +1,4 @@
-import SplashScreen from "@/src/layouts/LoginScreen";
+import SplashScreen from "@/src/layouts/splashScreen";
 
 
 export default function Index (){

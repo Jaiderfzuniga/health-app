@@ -1,4 +1,4 @@
-import { useNavigation } from "expo-router";
+import { useNavigation, useRootNavigationState } from "expo-router";
 import { useState } from "react";
 import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import { useEffect } from "react";

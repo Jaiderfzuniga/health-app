@@ -1,72 +1,110 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { supabase } from "../supabaseClient";
 
 export default function RegisterScreen({ onClose }: any) {
-    const [email, setEmail] = useState ("");
-    const [password, setPasswor] = useState ("");
-    const [fullname, setFullName] = useState ("");
-    const [mobilephone, srtMobilePhone] = useState ("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState(""); // corregido
+    const [fullname, setFullName] = useState("");
+    const [mobilephone, setMobilePhone] = useState(""); // corregido
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
     const handleRegister = async () => {
-      setLoading(true);
-      setErrorMessage("");
+        setLoading(true);
+        setErrorMessage("");
 
-    const { data, error } = await supabase.auth.signUp ({
-                      email, 
-                      password
+        // Comprobar si el usuario ya existe
+        const { data: existingUser, error: userFetchError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("email", email);
 
-    });
-    if (error ) {
-      setErrorMessage(error.message);
-      setLoading(false);
-      return;
-    }
+        if (userFetchError) {
+            setErrorMessage("Error checking user existence");
+            setLoading(false);
+            return;
+        }
 
-    //Insert data into supabase table
-    const { error: InsertError} = await supabase.from("users").insert([
+        if (existingUser && existingUser.length > 0) {
+            setErrorMessage("User already exists with this email.");
+            setLoading(false);
+            return;
+        }
 
-      {
+        // Crear usuario en Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+        });
 
-        email: email,
-        password: password,
-        fullname: fullname,
-        mobile_phone: mobilephone
-      }
-    ]);
+        if (error) {
+            setErrorMessage(error.message);
+            setLoading(false);
+            return;
+        }
 
-    setLoading(false);
-    if(InsertError){
-      setErrorMessage(InsertError.message);
-    } else{
-      alert("user has been created succesfully")
-      onClose();
-    }
-  }
+        // Insertar datos adicionales en la tabla "users"
+        const { error: insertError } = await supabase.from("users").insert([
+            {
+                email,
+                password, // ⚠️ Para seguridad, evita guardar contraseñas planas.
+                fullname,
+                mobile_phone: mobilephone
+            }
+        ]);
+
+        setLoading(false);
+
+        if (insertError) {
+            setErrorMessage(insertError.message);
+        } else {
+            Alert.alert("Success", "User has been created successfully");
+            onClose();
+        }
+    };
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Sign up</Text>
+
             <TextInput
                 style={styles.input}
                 placeholder="admin@mail.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
             />
             <TextInput
                 style={styles.input}
                 placeholder="*********"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
             />
             <TextInput
                 style={styles.input}
                 placeholder="Your fullname"
+                value={fullname}
+                onChangeText={setFullName}
             />
             <TextInput
                 style={styles.input}
                 placeholder="(+57) 000000000"
+                keyboardType="phone-pad"
+                value={mobilephone}
+                onChangeText={setMobilePhone}
             />
-            <TouchableOpacity style={styles.button}>
-                <Text style={styles.buttonText}>Register</Text>
+
+            {errorMessage ? (
+                <Text style={{ color: "red", marginTop: 10 }}>{errorMessage}</Text>
+            ) : null}
+
+            <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+                <Text style={styles.buttonText}>{loading ? "Registering..." : "Register"}</Text>
             </TouchableOpacity>
+
             <TouchableOpacity onPress={onClose}>
                 <Text style={styles.link}>Back to login</Text>
             </TouchableOpacity>
@@ -114,4 +152,3 @@ const styles = StyleSheet.create({
         textDecorationLine: "underline"
     },
 });
-
